@@ -1,5 +1,6 @@
 import { GetStaticProps } from 'next';
 import Head from 'next/head';
+import { FiCalendar, FiUser } from "react-icons/fi"
 
 import { getPrismicClient } from '../services/prismic';
 
@@ -25,14 +26,60 @@ interface HomeProps {
   postsPagination: PostPagination;
 }
 
+
 export default function Home() {
   return (
     <>
       <Head>
-        <title>NewProject</title>
+        <title>Space traveling</title>
       </Head>
-      <main>
-        Content
+      <main className={styles.homeContainer}>
+        <section className={styles.homeContent}>
+          <a href="/post/1">Como utilizar Hooks</a >
+          <p>Pensando em sincronização em vez de ciclo de vida</p>
+          <div className={styles.info}>
+            <div>
+              <FiCalendar />
+              <time>15/03/2021</time>
+            </div>
+            <div>
+              <FiUser/>
+              <p>Joseph Oliveira</p>
+            </div>
+          </div>
+        </section>
+        <section className={styles.homeContent}>
+          <a href="">Como utilizar Hooks</a >
+          <p>Pensando em sincronização em vez de ciclo de vida</p>
+          <div className={styles.info}>
+            <div>
+              <FiCalendar />
+              <time>15/03/2021</time>
+            </div>
+            <div>
+              <FiUser/>
+              <p>Joseph Oliveira</p>
+            </div>
+          </div>
+        </section>
+        <section className={styles.homeContent}>
+          <a href="">Como utilizar Hooks</a>
+          <p>Pensando em sincronização em vez de ciclo de vida</p>
+          <div className={styles.info}>
+            <div>
+              <FiCalendar />
+              <time>15/03/2021</time>
+            </div>
+            <div>
+              <FiUser/>
+              <p>Joseph Oliveira</p>
+            </div>
+          </div>
+        </section>
+
+        <button type="button">
+          Carregar mais posts
+        </button>
       </main>
     </>
   )
