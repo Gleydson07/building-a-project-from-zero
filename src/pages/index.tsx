@@ -6,11 +6,12 @@ import Head from 'next/head';
 
 import { getPrismicClient } from '../services/prismic';
 import Prismic from '@prismicio/client';
-import { RichText } from 'prismic-dom';
+
+import { format } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
 
 import { FiCalendar, FiUser } from "react-icons/fi"
-
-
+import { useEffect, useState } from 'react';
 
 interface Post {
   uid?: string;
@@ -20,6 +21,12 @@ interface Post {
     subtitle: string;
     author: string;
   };
+  content: {
+    heading: string;
+    body: {
+      text: string;
+    }
+  }
 }
 
 interface PostPagination {
@@ -32,35 +39,67 @@ interface HomeProps {
 }
 
 
-export default function Home(props:HomeProps) {
+export default function Home({postsPagination}: HomeProps) {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [nextPage, setNextPage] = useState(postsPagination.next_page);
+
+  useEffect(() => {
+    // console.log(nextPage)
+  }, [posts])
+
+  async function handleLoadPosts(){
+    const response = await fetch(postsPagination.next_page).then(response => 
+      response.json())
+
+    const loadedPosts = response.results.map((post:Post) => ({
+      uid:post.uid,
+      first_publication_date: format(
+        new Date(post.first_publication_date),
+        'dd MMM yyyy',
+        {locale: ptBR}),
+      data: {
+        title: post.data.title,
+        subtitle: post.data.subtitle,
+        author: post.data.author
+      }
+    }))
+    setPosts([...posts, loadedPosts]);
+    setNextPage(response.next_page);
+  }
+
   return (
     <>
       <Head>
         <title>Posts | Space traveling</title>
       </Head>
       <main className={styles.homeContainer}>
-        {props.postsPagination.results.map(post => {
+        {postsPagination.results.map(post => {
           return (
-            <section className={styles.homeContent}>
-              <a href="/post/1">Como utilizar Hooks</a >
-              <p>Pensando em sincronização em vez de ciclo de vida</p>
+            <section key={post.uid} className={styles.homeContent}>
+              <a href={`/post/${post.uid}`}>{post.data.title}</a >
+              <p>{post.data.subtitle}</p>
               <div className={styles.info}>
                 <div>
                   <FiCalendar />
-                  <time>15/03/2021</time>
+                  <time>{post.first_publication_date}</time>
                 </div>
                 <div>
                   <FiUser/>
-                  <p>Joseph Oliveira</p>
+                  <p>{post.data.author}</p>
                 </div>
               </div>
             </section>            
           )
         })}
 
-        <button type="button">
-          Carregar mais posts
-        </button>
+        {postsPagination.next_page && 
+          <button 
+            type="button"
+            onClick={handleLoadPosts}
+          >
+            Carregar mais posts
+          </button>
+        }
       </main>
     </>
   )
@@ -72,26 +111,34 @@ export const getStaticProps: GetStaticProps = async () => {
     Prismic.predicates.at('document.type', 'posts')
   ],{
     fetch: ['posts.title', 'posts.subtitle', 'posts.first_publication_date', 'posts.author'],
-        pageSize: 2,
+    pageSize: 1,
+    page: 1
   });
 
-  const posts = postsResponse.results.map(post => {
-    return {
-      slug: post.uid,
-      title: post.data.title,
-      subtitle: post.data.subtitle,
-      author: post.data.author,
-      updateAt: new Date(post.first_publication_date).toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
-      })
-    }
-  })
-  console.log(posts)
+  
+  const postsPagination = {
+    next_page: postsResponse.next_page,
+    results: postsResponse.results.map(post => {
+      return {
+        uid: post.uid,
+        first_publication_date: format(
+          new Date(post.first_publication_date),
+          'dd MMM yyyy',
+          { locale: ptBR }
+        ),
+        data: {
+          title: post.data.title,
+          subtitle: post.data.subtitle,
+          author: post.data.author
+        }
+      }
+    })
+  }
+
   return {
     props: {
-      posts
-    }
+      postsPagination
+    },
+    revalidate: 60 * 30, // 30min
   }
 };

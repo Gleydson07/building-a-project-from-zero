@@ -3,13 +3,11 @@ import { Header } from '../components/Header';
 import { Provider as NextAuthProvider } from 'next-auth/client'
 import '../styles/globals.scss';
 
-function MyApp({ Component, pageProps }: AppProps): JSX.Element {
+export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
   return (
-    <>
-      <Header/>
+    <NextAuthProvider session={pageProps.session}>
+      <Header />
       <Component {...pageProps} />
-    </>
+    </NextAuthProvider>
   )
 }
-
-export default MyApp;

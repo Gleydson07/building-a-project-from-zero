@@ -3,9 +3,15 @@ import Head from 'next/head';
 import { FiCalendar, FiUser, FiClock } from 'react-icons/fi';
 
 import { getPrismicClient } from '../../services/prismic';
+import Prismic from '@prismicio/client';
+import { RichText } from 'prismic-dom';
+
+import { format } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
+
+import styles from './post.module.scss';
 
 import commonStyles from '../../styles/common.module.scss'
-import styles from './post.module.scss';
 
 interface Post {
   first_publication_date: string | null;
@@ -28,49 +34,92 @@ interface PostProps {
   post: Post;
 }
 
-export default function Post() {
+export default function Post({post}: PostProps) {
+
+
   return (
     <>
       <Head>
         <title>Post | SpaceTraveling</title>
       </Head>
       <main className={commonStyles.postContainer}>
-        <img src="/images/banner.png" alt=""/>
-        <section>
-            <h1>Como utilizar Hooks</h1>
+        <img className={styles.banner} src={post.data.banner.url} alt="banner"/>
+        <article>
+            <h1>{post.data.title}</h1>
             <div className={commonStyles.info}>
               <FiCalendar />
-              <time>15/03/2021</time>
+              <time>{post.first_publication_date}</time>
               <FiUser/>
-              <span>Joseph Oliveira</span>
+              <span>{post.data.author}</span>
               <FiClock/>
               <span>5 min</span>
             </div>
-          <article className={commonStyles.postContent}>
-            <h2>Lorem ipsum dolor sit </h2>
-            <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Temporibus, saepe? Libero deleniti sapiente eveniet qui asperiores ea eum quisquam? Laborum rem rerum incidunt eligendi esse quos. Veniam ad obcaecati unde!lor
-              Lorem ipsum dolor sit, amet consectetur adipisicing elit. Fugiat laudantium beatae assumenda sit similique veritatis praesentium, ea repudiandae, laborum placeat corrupti ipsa earum. Officiis molestiae ipsa debitis beatae corrupti. Ducimus.
-            </p>
+            {/* {
+              post.data.content.map(paragraph => {
+                console.log(paragraph)
+                return (
+                  <section>
+                    <h3>{paragraph.heading}</h3>
+                    <p>{paragraph.body}</p>
 
-            <p>Lorem ipsum dolor sit amet consectetur, adipisicing elit. Repellat eos ducimus incidunt consequatur beatae, vero aut voluptas, accusantium cupiditate iure odio veniam quae qui explicabo! Omnis autem amet rerum hic? Lorem, ipsum dolor sit amet consectetur adipisicing elit. Consequuntur accusantium obcaecati, enim sunt ullam, iure repellat perferendis voluptate commodi amet laudantium distinctio nostrum cumque excepturi sed alias omnis corrupti delectus.</p>
-
-          </article>
-        </section>
+                  </section>
+                )
+              })
+            } */}
+        </article>
       </main>
     </>
   );
 }
 
-// export const getStaticPaths = async () => {
-//   const prismic = getPrismicClient();
-//   const posts = await prismic.query(TODO);
+export const getStaticPaths = async () => {
+  // const prismic = getPrismicClient();
+  // const posts = await prismic.query([
+  //     Prismic.predicates.at('document.type', 'posts')
+  // ], {
+  //     fetch: ['posts.uid'],
+  //     pageSize: 2,
+  // });
 
-//   // TODO
-// };
+  // console.log('paths')
+  // console.log(posts.results)
 
-// export const getStaticProps = async context => {
-//   const prismic = getPrismicClient();
-//   const response = await prismic.getByUID(TODO);
+  return {
+    paths: [],
+    fallback: 'blocking'
+  }
+};
 
-//   // TODO
-// };
+export const getStaticProps: GetStaticProps = async ({params}) => {
+  const {slug} = params;
+  const prismic = getPrismicClient();
+  const postResponse = await prismic.getByUID('posts', String(slug), {});
+
+  const post = {
+      first_publication_date: format(
+        new Date(postResponse.first_publication_date),
+        'dd MMM yyyy',
+        { locale: ptBR }
+      ),
+      data: {
+        title: postResponse.data.title,
+        author: postResponse.data.author,
+        banner: {
+          url: postResponse.data.banner.url
+        },
+        // content: [{
+        //   heading: postResponse.data.content?.heading,
+        //   body: [postResponse.data.content.body?.text]
+        // }]
+      }
+  }
+  // [{
+  //   text: RichText.asText(postResponse.data.content.body?.text),
+  // }]
+
+  return {
+    props: {
+      post
+    }
+  }
+};
