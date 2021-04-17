@@ -3,6 +3,7 @@ import styles from './home.module.scss';
 
 import { GetStaticProps } from 'next';
 import Head from 'next/head';
+import Link from 'next/link';
 
 import { getPrismicClient } from '../services/prismic';
 import Prismic from '@prismicio/client';
@@ -12,6 +13,7 @@ import ptBR from 'date-fns/locale/pt-BR';
 
 import { FiCalendar, FiUser } from "react-icons/fi"
 import { useEffect, useState } from 'react';
+import { Header } from '../components/Header';
 
 interface Post {
   uid?: string;
@@ -39,31 +41,28 @@ interface HomeProps {
 }
 
 
-export default function Home({postsPagination}: HomeProps) {
-  const [posts, setPosts] = useState<Post[]>([]);
+export default function Home({postsPagination}: HomeProps): JSX.Element {
+  const [posts, setPosts] = useState(postsPagination.results);
   const [nextPage, setNextPage] = useState(postsPagination.next_page);
 
   useEffect(() => {
-    // console.log(nextPage)
+    postsPagination.next_page = nextPage;
   }, [posts])
 
-  async function handleLoadPosts(){
+  async function handleLoadPosts(): Promise<void>{
     const response = await fetch(postsPagination.next_page).then(response => 
       response.json())
 
     const loadedPosts = response.results.map((post:Post) => ({
       uid:post.uid,
-      first_publication_date: format(
-        new Date(post.first_publication_date),
-        'dd MMM yyyy',
-        {locale: ptBR}),
+      first_publication_date: post.first_publication_date,
       data: {
         title: post.data.title,
         subtitle: post.data.subtitle,
         author: post.data.author
       }
     }))
-    setPosts([...posts, loadedPosts]);
+    setPosts([...posts, ...loadedPosts]);
     setNextPage(response.next_page);
   }
 
@@ -73,29 +72,36 @@ export default function Home({postsPagination}: HomeProps) {
         <title>Posts | Space traveling</title>
       </Head>
       <main className={styles.homeContainer}>
-        {postsPagination.results.map(post => {
+        <Header />
+        {posts.map(post => {
           return (
             <section key={post.uid} className={styles.homeContent}>
-              <a href={`/post/${post.uid}`}>{post.data.title}</a >
-              <p>{post.data.subtitle}</p>
-              <div className={styles.info}>
-                <div>
-                  <FiCalendar />
-                  <time>{post.first_publication_date}</time>
-                </div>
-                <div>
-                  <FiUser/>
-                  <p>{post.data.author}</p>
-                </div>
-              </div>
+              <Link href={`/post/${post.uid}`}>
+                <a>
+                  <h3 > { post.data.title } </h3 >
+                  <p>{post.data.subtitle}</p>
+                  <div className={commonStyles.info}>
+                    <FiCalendar />
+                    <time>
+                      {format(
+                        new Date(post.first_publication_date),
+                        'dd MMM yyyy',
+                        { locale: ptBR }
+                      )}
+                    </time>
+                    <FiUser/>
+                    <span>{post.data.author}</span>
+                  </div>
+                </a>
+              </Link>
             </section>            
           )
         })}
 
-        {postsPagination.next_page && 
+        {nextPage && 
           <button 
             type="button"
-            onClick={handleLoadPosts}
+            onClick={ handleLoadPosts}
           >
             Carregar mais posts
           </button>
@@ -110,22 +116,17 @@ export const getStaticProps: GetStaticProps = async () => {
   const postsResponse = await prismic.query([
     Prismic.predicates.at('document.type', 'posts')
   ],{
-    fetch: ['posts.title', 'posts.subtitle', 'posts.first_publication_date', 'posts.author'],
-    pageSize: 1,
-    page: 1
+    fetch: ['posts.title', 'posts.subtitle', 'posts.author'],
+    orderings: '[document.first_publication_date desc]',
+    pageSize: 2,
   });
-
   
   const postsPagination = {
     next_page: postsResponse.next_page,
     results: postsResponse.results.map(post => {
       return {
         uid: post.uid,
-        first_publication_date: format(
-          new Date(post.first_publication_date),
-          'dd MMM yyyy',
-          { locale: ptBR }
-        ),
+        first_publication_date: post.first_publication_date,
         data: {
           title: post.data.title,
           subtitle: post.data.subtitle,
